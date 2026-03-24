@@ -1,0 +1,42 @@
+{
+  "name": "cisco-codec-aes67-manager",
+  "version": "0.9.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "package-win": "electron-packager . --platform=win32 --arch=x64 --out=dist --overwrite",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.zachariegignac.cisco-codec-aes67-manager",
+    "productName": "Cisco Codec AES67 Manager",
+    "win": {
+      "target": "nsis",
+      "forceCodeSigning": false,
+      "verifyUpdateCodeSignature": false
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/electron-builder/**/*",
+      "!dist/**/*"
+    ]
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.2.1",
+    "jsxapi": "^6.0.0"
+  },
+  "devDependencies": {
+    "electron": "^39.2.4",
+    "electron-builder": "^26.0.12",
+    "electron-packager": "^17.1.2"
+  }
+}
