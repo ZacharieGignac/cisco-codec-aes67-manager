@@ -52,40 +52,60 @@ function broadcastEvent(type, data) {
 }
 
 app.post('/api/login', (req, res) => {
+    console.log('[SERVER] /api/login endpoint hit');
+    console.log('[SERVER] Request body:', JSON.stringify(req.body));
     const { ip, username, password } = req.body;
+    console.log('[SERVER] Parsed credentials:', { ip, username: username ? '***' : '', password: password ? '***' : '' });
 
     if (xapi) {
+        console.log('[SERVER] Closing existing xapi connection');
         try { xapi.close(); } catch(e) {}
         xapi = null;
     }
 
-    console.log(`Connecting to ${ip}...`);
+    console.log(`[SERVER] Connecting to ${ip}...`);
     
     // Handle both raw IP and wss:// prefix
     const connectionString = ip.includes('://') ? ip : `wss://${ip}`;
 
     try {
+        console.log('[SERVER] Creating jsxapi connection to:', connectionString);
         const newXapi = jsxapi.connect(connectionString, {
             username,
             password,
             rejectUnauthorized: false
         });
+        console.log('[SERVER] jsxapi.connect called, waiting for ready/error events');
 
         let responded = false;
 
-        newXapi.on('error', (err) => {
-            console.error('XAPI Error:', err);
+        const connectionTimeout = setTimeout(() => {
+            console.log('[SERVER] Connection timeout after 8 seconds');
             if (!responded) {
+                responded = true;
+                try { newXapi.close(); } catch(e) {}
+                res.status(504).json({ error: 'Connection timed out. Ensure the IP is correct and the device is reachable.' });
+            }
+        }, 8000);
+
+        newXapi.on('error', (err) => {
+            console.error('[SERVER] XAPI Error:', err);
+            console.error('[SERVER] XAPI Error stack:', err.stack);
+            if (!responded) {
+                console.log('[SERVER] Sending error response to client');
+                clearTimeout(connectionTimeout);
                 responded = true;
                 res.status(500).json({ error: err.message || 'Connection failed' });
             }
         });
 
         newXapi.on('ready', async () => {
-            console.log('Connected!');
+            console.log('[SERVER] XAPI ready event received!');
             xapi = newXapi;
             currentIp = ip;
             if (!responded) {
+                console.log('[SERVER] Sending success response to client');
+                clearTimeout(connectionTimeout);
                 responded = true;
                 res.json({ success: true, ip });
             }
@@ -134,7 +154,8 @@ app.post('/api/login', (req, res) => {
         }, 10000);
 
     } catch (err) {
-        console.error('Login exception:', err);
+        console.error('[SERVER] Login exception:', err);
+        console.error('[SERVER] Exception stack:', err.stack);
         res.status(500).json({ error: err.message });
     }
 });

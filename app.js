@@ -25,7 +25,11 @@ const saveOutputBtn = document.getElementById('save-output-btn');
 const cancelEditBtn = document.getElementById('cancel-edit-btn');
 
 // Event Listeners
-loginBtn.addEventListener('click', handleLogin);
+console.log('[CLIENT] Setting up event listeners');
+loginBtn.addEventListener('click', () => {
+    console.log('[CLIENT] Connect button clicked!');
+    handleLogin();
+});
 disconnectBtn.addEventListener('click', handleDisconnect);
 
 // Allow Enter key to trigger login
@@ -51,41 +55,58 @@ cancelEditBtn.addEventListener('click', () => editModal.classList.remove('active
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function apiGet(url) {
+    console.log('[CLIENT] apiGet:', url);
     const res = await fetch(url);
+    console.log('[CLIENT] apiGet response status:', res.status);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     return data;
 }
 
 async function apiPost(url, body) {
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    return data;
+    console.log('[CLIENT] apiPost:', url, 'body:', body);
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        console.log('[CLIENT] apiPost response status:', res.status);
+        const data = await res.json();
+        console.log('[CLIENT] apiPost response data:', data);
+        if (data.error) throw new Error(data.error);
+        return data;
+    } catch (err) {
+        console.error('[CLIENT] apiPost failed:', err);
+        throw err;
+    }
 }
 
 // --- Main Logic ---
 
 async function handleLogin() {
+    console.log('[CLIENT] handleLogin called');
     const ip = document.getElementById('device-ip').value.trim();
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
+    
+    console.log('[CLIENT] Form values:', { ip, username: username ? '***' : '', password: password ? '***' : '' });
 
     if (!ip || !username || !password) {
+        console.log('[CLIENT] Validation failed - missing fields');
         showError('Please fill in all fields');
         return;
     }
 
+    console.log('[CLIENT] Validation passed, starting login...');
     showError('');
     loginBtn.textContent = 'Connecting...';
     loginBtn.disabled = true;
 
     try {
+        console.log('[CLIENT] Calling apiPost /api/login');
         const data = await apiPost('/api/login', { ip, username, password });
+        console.log('[CLIENT] Login API responded:', data);
         
         console.log('Login successful');
         
@@ -128,12 +149,15 @@ async function handleLogin() {
         startEventStream();
 
     } catch (err) {
-        console.error('Login error:', err);
+        console.error('[CLIENT] Login error:', err);
+        console.error('[CLIENT] Error stack:', err.stack);
         showError('Connection failed: ' + err.message);
         loginBtn.textContent = 'Connect';
         loginBtn.disabled = false;
     }
 }
+
+console.log('[CLIENT] app.js loaded, loginBtn:', loginBtn);
 
 function startEventStream() {
     const evtSource = new EventSource('/api/events');
